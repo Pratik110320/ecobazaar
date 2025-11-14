@@ -71,8 +71,12 @@ public class Product {
     @Column(name = "brand")
     private String brand;
 
-    @Column(name = "image_url")
-    private String imageUrl;
+    // Store image data directly in the database
+    // We remove @Lob (which defaults to 'oid') and explicitly define the column as 'bytea'.
+    // This is the standard way to map byte[] to bytea in PostgreSQL
+    // and should fix the parameter binding order error.
+    @Column(name = "image_data", columnDefinition = "bytea")
+    private byte[] imageData;
 
     @Column(name = "stock_quantity")
     private Integer stockQuantity = 0;
@@ -126,7 +130,8 @@ public class Product {
 
     public Product() {}
 
-    public Product(Long id, String name, String description, BigDecimal price, Long sellerId, String sellerName, BigDecimal carbonImpact, CarbonCalculationMethod carbonCalculationMethod, String carbonBreakdown, Boolean ecoCertified, String ecoCertificationDetails, BigDecimal ecoRating, String category, String subCategory, String brand, String imageUrl, Integer stockQuantity, BigDecimal weightKg, String dimensions, String manufacturingLocation, Boolean shippingCarbonOffset, Boolean recyclable, Boolean biodegradable, Boolean renewableEnergyUsed, Boolean active, Boolean verified, LocalDateTime verificationDate, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    // Updated constructor
+    public Product(Long id, String name, String description, BigDecimal price, Long sellerId, String sellerName, BigDecimal carbonImpact, CarbonCalculationMethod carbonCalculationMethod, String carbonBreakdown, Boolean ecoCertified, String ecoCertificationDetails, BigDecimal ecoRating, String category, String subCategory, String brand, byte[] imageData, Integer stockQuantity, BigDecimal weightKg, String dimensions, String manufacturingLocation, Boolean shippingCarbonOffset, Boolean recyclable, Boolean biodegradable, Boolean renewableEnergyUsed, Boolean active, Boolean verified, LocalDateTime verificationDate, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -142,7 +147,7 @@ public class Product {
         this.category = category;
         this.subCategory = subCategory;
         this.brand = brand;
-        this.imageUrl = imageUrl;
+        this.imageData = imageData;
         this.stockQuantity = stockQuantity;
         this.weightKg = weightKg;
         this.dimensions = dimensions;
@@ -158,7 +163,7 @@ public class Product {
         this.updatedAt = updatedAt;
     }
 
-    // Getters & Setters (include all; shown a representative set)
+    // Getters & Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -204,8 +209,8 @@ public class Product {
     public String getBrand() { return brand; }
     public void setBrand(String brand) { this.brand = brand; }
 
-    public String getImageUrl() { return imageUrl; }
-    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    public byte[] getImageData() { return imageData; }
+    public void setImageData(byte[] imageData) { this.imageData = imageData; }
 
     public Integer getStockQuantity() { return stockQuantity; }
     public void setStockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; }
@@ -287,7 +292,7 @@ public class Product {
         private String category;
         private String subCategory;
         private String brand;
-        private String imageUrl;
+        private byte[] imageData; // Changed from imageUrl
         private Integer stockQuantity = 0;
         private BigDecimal weightKg;
         private String dimensions;
@@ -317,7 +322,7 @@ public class Product {
         public Builder category(String category) { this.category = category; return this; }
         public Builder subCategory(String subCategory) { this.subCategory = subCategory; return this; }
         public Builder brand(String brand) { this.brand = brand; return this; }
-        public Builder imageUrl(String imageUrl) { this.imageUrl = imageUrl; return this; }
+        public Builder imageData(byte[] imageData) { this.imageData = imageData; return this; } // Changed from imageUrl
         public Builder stockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; return this; }
         public Builder weightKg(BigDecimal weightKg) { this.weightKg = weightKg; return this; }
         public Builder dimensions(String dimensions) { this.dimensions = dimensions; return this; }
@@ -333,7 +338,7 @@ public class Product {
         public Builder updatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; return this; }
 
         public Product build() {
-            return new Product(id, name, description, price, sellerId, sellerName, carbonImpact, carbonCalculationMethod, carbonBreakdown, ecoCertified, ecoCertificationDetails, ecoRating, category, subCategory, brand, imageUrl, stockQuantity, weightKg, dimensions, manufacturingLocation, shippingCarbonOffset, recyclable, biodegradable, renewableEnergyUsed, active, verified, verificationDate, createdAt, updatedAt);
+            return new Product(id, name, description, price, sellerId, sellerName, carbonImpact, carbonCalculationMethod, carbonBreakdown, ecoCertified, ecoCertificationDetails, ecoRating, category, subCategory, brand, imageData, stockQuantity, weightKg, dimensions, manufacturingLocation, shippingCarbonOffset, recyclable, biodegradable, renewableEnergyUsed, active, verified, verificationDate, createdAt, updatedAt);
         }
     }
 }

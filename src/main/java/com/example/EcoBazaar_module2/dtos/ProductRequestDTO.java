@@ -24,7 +24,7 @@ public class ProductRequestDTO {
     private String category;
     private String subCategory;
     private String brand;
-    private String imageUrl;
+    // imageUrl removed, will be handled by MultipartFile
 
     @Min(value = 0)
     private Integer stockQuantity;
@@ -49,7 +49,8 @@ public class ProductRequestDTO {
 
     public ProductRequestDTO() {}
 
-    public ProductRequestDTO(String name, String description, BigDecimal price, Long sellerId, String sellerName, String category, String subCategory, String brand, String imageUrl, Integer stockQuantity, BigDecimal weightKg, String dimensions, String manufacturingLocation, BigDecimal carbonImpact, Boolean ecoCertified, String ecoCertificationDetails, Boolean recyclable, Boolean biodegradable, Boolean renewableEnergyUsed, Boolean shippingCarbonOffset) {
+    // Updated constructor
+    public ProductRequestDTO(String name, String description, BigDecimal price, Long sellerId, String sellerName, String category, String subCategory, String brand, Integer stockQuantity, BigDecimal weightKg, String dimensions, String manufacturingLocation, BigDecimal carbonImpact, Boolean ecoCertified, String ecoCertificationDetails, Boolean recyclable, Boolean biodegradable, Boolean renewableEnergyUsed, Boolean shippingCarbonOffset) {
         this.name = name;
         this.description = description;
         this.price = price;
@@ -58,7 +59,6 @@ public class ProductRequestDTO {
         this.category = category;
         this.subCategory = subCategory;
         this.brand = brand;
-        this.imageUrl = imageUrl;
         this.stockQuantity = stockQuantity;
         this.weightKg = weightKg;
         this.dimensions = dimensions;
@@ -97,8 +97,7 @@ public class ProductRequestDTO {
     public String getBrand() { return brand; }
     public void setBrand(String brand) { this.brand = brand; }
 
-    public String getImageUrl() { return imageUrl; }
-    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    // imageUrl getter/setter removed
 
     public Integer getStockQuantity() { return stockQuantity; }
     public void setStockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; }
@@ -145,7 +144,7 @@ public class ProductRequestDTO {
         private String category;
         private String subCategory;
         private String brand;
-        private String imageUrl;
+        // imageUrl removed
         private Integer stockQuantity;
         private BigDecimal weightKg;
         private String dimensions;
@@ -166,7 +165,7 @@ public class ProductRequestDTO {
         public Builder category(String category) { this.category = category; return this; }
         public Builder subCategory(String subCategory) { this.subCategory = subCategory; return this; }
         public Builder brand(String brand) { this.brand = brand; return this; }
-        public Builder imageUrl(String imageUrl) { this.imageUrl = imageUrl; return this; }
+        // imageUrl removed
         public Builder stockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; return this; }
         public Builder weightKg(BigDecimal weightKg) { this.weightKg = weightKg; return this; }
         public Builder dimensions(String dimensions) { this.dimensions = dimensions; return this; }
@@ -182,7 +181,7 @@ public class ProductRequestDTO {
         public ProductRequestDTO build() {
             return new ProductRequestDTO(
                     name, description, price, sellerId, sellerName,
-                    category, subCategory, brand, imageUrl, stockQuantity,
+                    category, subCategory, brand, stockQuantity,
                     weightKg, dimensions, manufacturingLocation, carbonImpact,
                     ecoCertified, ecoCertificationDetails, recyclable, biodegradable, renewableEnergyUsed, shippingCarbonOffset
             );

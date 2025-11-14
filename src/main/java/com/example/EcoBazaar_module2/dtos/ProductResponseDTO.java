@@ -15,7 +15,7 @@ public class ProductResponseDTO {
     private String category;
     private String subCategory;
     private String brand;
-    private String imageUrl;
+    private String imageBase64; // Changed from imageUrl
     private Integer stockQuantity;
     private BigDecimal weightKg;
     private String dimensions;
@@ -48,7 +48,8 @@ public class ProductResponseDTO {
 
     public ProductResponseDTO() {}
 
-    public ProductResponseDTO(Long id, String name, String description, BigDecimal price, Long sellerId, String sellerName, String category, String subCategory, String brand, String imageUrl, Integer stockQuantity, BigDecimal weightKg, String dimensions, String manufacturingLocation, BigDecimal carbonImpact, String carbonCalculationMethod, String carbonBreakdown, Boolean ecoCertified, String ecoCertificationDetails, BigDecimal ecoRating, String ecoLabel, String ecoBadgeColor, Boolean recyclable, Boolean biodegradable, Boolean renewableEnergyUsed, Boolean shippingCarbonOffset, Boolean active, Boolean verified, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    // Updated constructor
+    public ProductResponseDTO(Long id, String name, String description, BigDecimal price, Long sellerId, String sellerName, String category, String subCategory, String brand, String imageBase64, Integer stockQuantity, BigDecimal weightKg, String dimensions, String manufacturingLocation, BigDecimal carbonImpact, String carbonCalculationMethod, String carbonBreakdown, Boolean ecoCertified, String ecoCertificationDetails, BigDecimal ecoRating, String ecoLabel, String ecoBadgeColor, Boolean recyclable, Boolean biodegradable, Boolean renewableEnergyUsed, Boolean shippingCarbonOffset, Boolean active, Boolean verified, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -58,7 +59,7 @@ public class ProductResponseDTO {
         this.category = category;
         this.subCategory = subCategory;
         this.brand = brand;
-        this.imageUrl = imageUrl;
+        this.imageBase64 = imageBase64; // Changed
         this.stockQuantity = stockQuantity;
         this.weightKg = weightKg;
         this.dimensions = dimensions;
@@ -81,7 +82,7 @@ public class ProductResponseDTO {
         this.updatedAt = updatedAt;
     }
 
-    // Getters & Setters (only a few shown — include all similarly)
+    // Getters & Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -109,8 +110,8 @@ public class ProductResponseDTO {
     public String getBrand() { return brand; }
     public void setBrand(String brand) { this.brand = brand; }
 
-    public String getImageUrl() { return imageUrl; }
-    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    public String getImageBase64() { return imageBase64; } // Changed
+    public void setImageBase64(String imageBase64) { this.imageBase64 = imageBase64; } // Changed
 
     public Integer getStockQuantity() { return stockQuantity; }
     public void setStockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; }
@@ -185,7 +186,7 @@ public class ProductResponseDTO {
         private String category;
         private String subCategory;
         private String brand;
-        private String imageUrl;
+        private String imageBase64; // Changed
         private Integer stockQuantity;
         private BigDecimal weightKg;
         private String dimensions;
@@ -216,7 +217,7 @@ public class ProductResponseDTO {
         public Builder category(String category) { this.category = category; return this; }
         public Builder subCategory(String subCategory) { this.subCategory = subCategory; return this; }
         public Builder brand(String brand) { this.brand = brand; return this; }
-        public Builder imageUrl(String imageUrl) { this.imageUrl = imageUrl; return this; }
+        public Builder imageBase64(String imageBase64) { this.imageBase64 = imageBase64; return this; } // Changed
         public Builder stockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; return this; }
         public Builder weightKg(BigDecimal weightKg) { this.weightKg = weightKg; return this; }
         public Builder dimensions(String dimensions) { this.dimensions = dimensions; return this; }
@@ -239,7 +240,7 @@ public class ProductResponseDTO {
         public Builder updatedAt(java.time.LocalDateTime updatedAt) { this.updatedAt = updatedAt; return this; }
 
         public ProductResponseDTO build() {
-            return new ProductResponseDTO(id, name, description, price, sellerId, sellerName, category, subCategory, brand, imageUrl, stockQuantity, weightKg, dimensions, manufacturingLocation, carbonImpact, carbonCalculationMethod, carbonBreakdown, ecoCertified, ecoCertificationDetails, ecoRating, ecoLabel, ecoBadgeColor, recyclable, biodegradable, renewableEnergyUsed, shippingCarbonOffset, active, verified, createdAt, updatedAt);
+            return new ProductResponseDTO(id, name, description, price, sellerId, sellerName, category, subCategory, brand, imageBase64, stockQuantity, weightKg, dimensions, manufacturingLocation, carbonImpact, carbonCalculationMethod, carbonBreakdown, ecoCertified, ecoCertificationDetails, ecoRating, ecoLabel, ecoBadgeColor, recyclable, biodegradable, renewableEnergyUsed, shippingCarbonOffset, active, verified, createdAt, updatedAt);
         }
     }
 }

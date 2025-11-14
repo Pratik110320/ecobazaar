@@ -4,16 +4,21 @@ package com.example.EcoBazaar_module2.service;
 import com.example.EcoBazaar_module2.dtos.ProductFilterDTO;
 import com.example.EcoBazaar_module2.dtos.ProductRequestDTO;
 import com.example.EcoBazaar_module2.dtos.ProductResponseDTO;
+import com.example.EcoBazaar_module2.dtos.ProductUpdateDTO; // Import the new DTO
 import com.example.EcoBazaar_module2.exceptions.ResourceNotFoundException;
+import com.example.EcoBazaar_module2.exceptions.StorageException;
 import com.example.EcoBazaar_module2.model.Product;
 import com.example.EcoBazaar_module2.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -25,7 +30,8 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final CarbonCalculatorService carbonCalculatorService;
-    private final FileStorageService fileStorageService;
+    // private final FileStorageService fileStorageService; // No longer needed for file storage
+
     /**
      * Create a new product
      */
@@ -33,12 +39,6 @@ public class ProductService {
     public ProductResponseDTO createProduct(ProductRequestDTO request, MultipartFile file) {
         log.info("Creating new product: {}", request.getName());
 
-        String imageUrl = null;
-        if (file != null && !file.isEmpty()) {
-            imageUrl = fileStorageService.storeFile(file);
-        } else {
-            imageUrl = request.getImageUrl();
-        }
         Product product = Product.builder()
                 .name(request.getName())
                 .description(request.getDescription())
@@ -48,7 +48,7 @@ public class ProductService {
                 .category(request.getCategory())
                 .subCategory(request.getSubCategory())
                 .brand(request.getBrand())
-                .imageUrl(imageUrl)
+                // imageUrl is removed, imageData will be set below
                 .stockQuantity(request.getStockQuantity())
                 .weightKg(request.getWeightKg())
                 .dimensions(request.getDimensions())
@@ -62,6 +62,15 @@ public class ProductService {
                 .active(true)
                 .verified(false)
                 .build();
+
+        // Handle file upload -> save bytes to DB
+        if (file != null && !file.isEmpty()) {
+            try {
+                product.setImageData(file.getBytes());
+            } catch (IOException e) {
+                throw new StorageException("Failed to store file " + file.getOriginalFilename(), e);
+            }
+        }
 
         // Calculate or set carbon footprint
         if (request.getCarbonImpact() != null) {
@@ -87,48 +96,104 @@ public class ProductService {
     }
 
     /**
-     * Update existing product
+     * Update existing product (Partial Update)
      */
     @Transactional
-    public ProductResponseDTO updateProduct(Long id, ProductRequestDTO request,MultipartFile file) {
-        log.info("Updating product with ID: {}", id);
+    public ProductResponseDTO updateProduct(Long id, ProductUpdateDTO request, MultipartFile file) {
+        log.info("Partially updating product with ID: {}", id);
 
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
 
+        boolean needsRecalculation = false;
 
-        // Update fields
-        product.setName(request.getName());
-        product.setDescription(request.getDescription());
-        product.setPrice(request.getPrice());
-        product.setCategory(request.getCategory());
-        product.setSubCategory(request.getSubCategory());
-        product.setBrand(request.getBrand());
+        // Update fields only if they are provided in the request
+        if (StringUtils.hasText(request.getName())) {
+            product.setName(request.getName());
+        }
+        if (StringUtils.hasText(request.getDescription())) {
+            product.setDescription(request.getDescription());
+        }
+        if (request.getPrice() != null) {
+            product.setPrice(request.getPrice());
+        }
+        if (StringUtils.hasText(request.getCategory())) {
+            product.setCategory(request.getCategory());
+            needsRecalculation = true;
+        }
+        if (StringUtils.hasText(request.getSubCategory())) {
+            product.setSubCategory(request.getSubCategory());
+        }
+        if (StringUtils.hasText(request.getBrand())) {
+            product.setBrand(request.getBrand());
+        }
+        if (request.getStockQuantity() != null) {
+            product.setStockQuantity(request.getStockQuantity());
+        }
+        if (request.getWeightKg() != null) {
+            product.setWeightKg(request.getWeightKg());
+            needsRecalculation = true;
+        }
+        if (StringUtils.hasText(request.getDimensions())) {
+            product.setDimensions(request.getDimensions());
+        }
+        if (StringUtils.hasText(request.getManufacturingLocation())) {
+            product.setManufacturingLocation(request.getManufacturingLocation());
+            needsRecalculation = true;
+        }
+
+        // Eco features
+        if (request.getEcoCertified() != null) {
+            product.setEcoCertified(request.getEcoCertified());
+            needsRecalculation = true;
+        }
+        if (StringUtils.hasText(request.getEcoCertificationDetails())) {
+            product.setEcoCertificationDetails(request.getEcoCertificationDetails());
+        }
+        if (request.getRecyclable() != null) {
+            product.setRecyclable(request.getRecyclable());
+            needsRecalculation = true;
+        }
+        if (request.getBiodegradable() != null) {
+            product.setBiodegradable(request.getBiodegradable());
+            needsRecalculation = true;
+        }
+        if (request.getRenewableEnergyUsed() != null) {
+            product.setRenewableEnergyUsed(request.getRenewableEnergyUsed());
+            needsRecalculation = true;
+        }
+        if (request.getShippingCarbonOffset() != null) {
+            product.setShippingCarbonOffset(request.getShippingCarbonOffset());
+            needsRecalculation = true;
+        }
+
+        // Handle file update
         if (file != null && !file.isEmpty()) {
-            String newImageUrl = fileStorageService.storeFile(file);
-            product.setImageUrl(newImageUrl);
-        } else if (Objects.nonNull(request.getImageUrl())) {
-            product.setImageUrl(request.getImageUrl());
-        }        product.setStockQuantity(request.getStockQuantity());
-        product.setWeightKg(request.getWeightKg());
-        product.setDimensions(request.getDimensions());
-        product.setManufacturingLocation(request.getManufacturingLocation());
-        product.setEcoCertified(request.getEcoCertified());
-        product.setEcoCertificationDetails(request.getEcoCertificationDetails());
-        product.setRecyclable(request.getRecyclable());
-        product.setBiodegradable(request.getBiodegradable());
-        product.setRenewableEnergyUsed(request.getRenewableEnergyUsed());
-        product.setShippingCarbonOffset(request.getShippingCarbonOffset());
+            try {
+                product.setImageData(file.getBytes());
+                log.info("Updated image for product ID: {}", id);
+            } catch (IOException e) {
+                throw new StorageException("Failed to store file " + file.getOriginalFilename(), e);
+            }
+        }
 
-        // Update carbon impact if provided
+        // Update carbon impact if provided manually
         if (request.getCarbonImpact() != null) {
             product.setCarbonImpact(request.getCarbonImpact());
             product.setCarbonCalculationMethod(Product.CarbonCalculationMethod.MANUAL_INPUT);
+            needsRecalculation = true;
+        } else if (needsRecalculation) {
+            // If manual impact isn't set, but relevant fields changed, recalculate
+            BigDecimal calculatedImpact = carbonCalculatorService.calculateCarbonFootprint(product);
+            product.setCarbonImpact(calculatedImpact);
+            product.setCarbonCalculationMethod(Product.CarbonCalculationMethod.API_CALCULATED);
         }
 
-        // Recalculate eco rating
-        product.setEcoRating(calculateEcoRating(product));
-        product.setCarbonBreakdown(carbonCalculatorService.generateCarbonBreakdown(product));
+        // Recalculate eco rating and breakdown if needed
+        if (needsRecalculation) {
+            product.setEcoRating(calculateEcoRating(product));
+            product.setCarbonBreakdown(carbonCalculatorService.generateCarbonBreakdown(product));
+        }
 
         Product updatedProduct = productRepository.save(product);
         log.info("Product updated successfully");
@@ -257,6 +322,12 @@ public class ProductService {
      * Map entity to DTO
      */
     private ProductResponseDTO mapToResponseDTO(Product product) {
+        // Encode image data to Base64 string for the DTO
+        String imageBase64 = null;
+        if (product.getImageData() != null && product.getImageData().length > 0) {
+            imageBase64 = Base64.getEncoder().encodeToString(product.getImageData());
+        }
+
         return ProductResponseDTO.builder()
                 .id(product.getId())
                 .name(product.getName())
@@ -267,7 +338,7 @@ public class ProductService {
                 .category(product.getCategory())
                 .subCategory(product.getSubCategory())
                 .brand(product.getBrand())
-                .imageUrl(product.getImageUrl())
+                .imageBase64(imageBase64) // Set Base64 string
                 .stockQuantity(product.getStockQuantity())
                 .weightKg(product.getWeightKg())
                 .dimensions(product.getDimensions())

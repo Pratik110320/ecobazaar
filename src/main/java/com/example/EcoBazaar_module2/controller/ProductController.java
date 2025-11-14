@@ -4,6 +4,7 @@ package com.example.EcoBazaar_module2.controller;
 import com.example.EcoBazaar_module2.dtos.ProductFilterDTO;
 import com.example.EcoBazaar_module2.dtos.ProductRequestDTO;
 import com.example.EcoBazaar_module2.dtos.ProductResponseDTO;
+import com.example.EcoBazaar_module2.dtos.ProductUpdateDTO; // Import the new DTO
 import com.example.EcoBazaar_module2.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -43,16 +44,16 @@ public class ProductController {
     }
 
     /**
-     * Update existing product
+     * Partially update existing product
      */
-    @PutMapping(value = "/{id}", consumes = {"multipart/form-data"}) // Specify consumes
-    @Operation(summary = "Update an existing product")
+    @PatchMapping(value = "/{id}", consumes = {"multipart/form-data"}) // Changed from @PutMapping to @PatchMapping
+    @Operation(summary = "Partially update an existing product")
     public ResponseEntity<ProductResponseDTO> updateProduct(
             @PathVariable Long id,
-            @Valid @RequestPart("product") ProductRequestDTO request, // Get DTO as form part
+            @Valid @RequestPart("product") ProductUpdateDTO request, // Use ProductUpdateDTO
             @RequestParam(value = "file", required = false) MultipartFile file // Get file (optional for update)
     ) {
-        log.info("REST request to update product with ID: {}", id);
+        log.info("REST request to PATCH product with ID: {}", id);
         ProductResponseDTO response = productService.updateProduct(id, request, file); // Pass file to service
         return ResponseEntity.ok(response);
     }

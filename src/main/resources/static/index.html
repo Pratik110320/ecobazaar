@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EcoBazaar - Carbon-Aware Shopping</title>
+    <!-- Add blank favicon to prevent 500 error in console -->
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <style>
         * {
             margin: 0;
@@ -77,12 +79,17 @@
             transition: all 0.3s ease;
         }
 
+        .btn:disabled {
+            background-color: var(--text-gray);
+            cursor: not-allowed;
+        }
+
         .btn-primary {
             background: white;
             color: var(--primary-green);
         }
 
-        .btn-primary:hover {
+        .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
@@ -92,7 +99,7 @@
             color: white;
         }
 
-        .btn-success:hover {
+        .btn-success:hover:not(:disabled) {
             background: var(--dark-green);
         }
 
@@ -163,6 +170,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
         .filters-header h2 {
@@ -248,6 +257,8 @@
             box-shadow: var(--shadow);
             transition: all 0.3s ease;
             cursor: pointer;
+            display: flex;
+            flex-direction: column;
         }
 
         .product-card:hover {
@@ -255,15 +266,34 @@
             box-shadow: var(--shadow-lg);
         }
 
-        .product-image {
+        .product-image-wrapper {
             width: 100%;
             height: 200px;
+            background: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .product-image {
+            width: 100%;
+            height: 100%;
             object-fit: cover;
-            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+        }
+
+        .product-image-placeholder {
+            font-size: 0.9rem;
+            color: var(--text-gray);
+            padding: 1rem;
+            text-align: center;
         }
 
         .product-content {
             padding: 1.25rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
         }
 
         .product-header {
@@ -292,6 +322,7 @@
             font-weight: 700;
             color: white;
             white-space: nowrap;
+            flex-shrink: 0;
         }
 
         .product-description {
@@ -347,6 +378,7 @@
             align-items: center;
             padding-top: 1rem;
             border-top: 2px solid var(--border-color);
+            margin-top: auto; /* Pushes footer to bottom */
         }
 
         .product-price {
@@ -375,6 +407,7 @@
             z-index: 1000;
             align-items: center;
             justify-content: center;
+            backdrop-filter: blur(5px);
         }
 
         .modal.active {
@@ -390,6 +423,18 @@
             max-height: 90vh;
             overflow-y: auto;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         .modal-header {
@@ -409,6 +454,10 @@
             font-size: 1.75rem;
             cursor: pointer;
             color: var(--text-gray);
+            transition: color 0.2s;
+        }
+        .close-btn:hover {
+            color: var(--text-dark);
         }
 
         .form-group {
@@ -432,9 +481,56 @@
             font-size: 0.95rem;
         }
 
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary-green);
+            box-shadow: 0 0 0 2px var(--bg-light);
+        }
+
         .form-group textarea {
             resize: vertical;
             min-height: 100px;
+        }
+
+        .form-group-image {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .form-group-image .image-preview {
+            width: 80px;
+            height: 80px;
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: var(--text-gray);
+            font-size: 0.8rem;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .form-group-image .image-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .form-group-image .file-input-wrapper {
+            flex-grow: 1;
+        }
+
+        .form-group-image label {
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group-image input[type="file"] {
+            padding: 0.5rem;
         }
 
         .form-row {
@@ -486,6 +582,34 @@
 
         .empty-state p {
             color: var(--text-gray);
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            background: var(--text-dark);
+            color: white;
+            font-weight: 600;
+            box-shadow: var(--shadow-lg);
+            transition: bottom 0.5s ease-in-out;
+            z-index: 2000;
+        }
+
+        .toast.show {
+            bottom: 30px;
+        }
+
+        .toast.error {
+            background: #ef4444;
+        }
+
+        .toast.success {
+            background: var(--primary-green);
         }
 
         /* Responsive */
@@ -682,9 +806,15 @@
                 <label>Manufacturing Location</label>
                 <input type="text" id="productLocation" placeholder="e.g., India, China">
             </div>
-            <div class="form-group">
-                <label>Image URL</label>
-                <input type="file" id="productImage" placeholder="image/*">
+            <div class="form-group-image">
+                <div class="image-preview" id="imagePreview">
+                    <span>No Image</span>
+                </div>
+                <div class="file-input-wrapper">
+                    <label>Product Image</label>
+                    <input type="file" id="productImage" accept="image/*" onchange="previewFile()">
+                    <small style="color: var(--text-gray); display: block; margin-top: 0.25rem;">Leave empty to keep existing image.</small>
+                </div>
             </div>
             <div class="form-group">
                 <label style="font-weight: 600; margin-bottom: 0.75rem;">Eco Features</label>
@@ -718,12 +848,16 @@
     </div>
 </div>
 
+<!-- Toast Notification -->
+<div id="toast" class="toast"></div>
+
 <script>
     const API_URL = 'http://localhost:8080/api/products';
-    let allProducts = [];
+    let allProducts = []; // Cache of all products
+    let currentEditProduct = null; // Store full product data for editing
 
     // Load products on page load
-    window.onload = () => {
+    window.onload = () => { // <-- FIX: Removed the extra underscore here
         loadProducts();
     };
 
@@ -732,6 +866,9 @@
         showLoading();
         try {
             const response = await fetch(API_URL);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             allProducts = await response.json();
             displayProducts(allProducts);
             updateStats(allProducts);
@@ -757,10 +894,17 @@
             return;
         }
 
-        container.innerHTML = products.map(product => `
+        container.innerHTML = products.map(product => {
+            const placeholder = '<div class="product-image-placeholder">No Image</div>';
+            const imageSrc = product.imageBase64
+                ? `<img src="data:image/jpeg;base64,${product.imageBase64}" alt="${product.name}" class="product-image">`
+                : placeholder;
+
+            return `
             <div class="product-card" onclick="viewProduct(${product.id})">
-                <img src="${product.imageUrl || 'https://via.placeholder.com/300x200?text=Product+Image'}"
-                     alt="${product.name}" class="product-image">
+                <div class="product-image-wrapper">
+                    ${imageSrc}
+                </div>
                 <div class="product-content">
                     <div class="product-header">
                         <div>
@@ -794,7 +938,7 @@
                     </div>
                 </div>
             </div>
-        `).join('');
+        `}).join('');
     }
 
     // Update statistics
@@ -824,18 +968,21 @@
         // Search by keyword
         if (search) {
             try {
-                const response = await fetch(`${API_URL}/search?keyword=${search}`);
+                showLoading();
+                const response = await fetch(`${API_URL}/search?keyword=${encodeURIComponent(search)}`);
                 const products = await response.json();
                 displayProducts(products);
                 return;
             } catch (error) {
                 console.error('Error searching:', error);
+                showError('Failed to execute search');
             }
         }
 
         // Filter with advanced criteria
         if (category || maxCarbon || minRating || ecoCertified || recyclable) {
             try {
+                showLoading();
                 const filterData = {
                     category: category || null,
                     maxCarbonImpact: maxCarbon ? parseFloat(maxCarbon) : null,
@@ -853,50 +1000,149 @@
                 displayProducts(products);
             } catch (error) {
                 console.error('Error filtering:', error);
+                showError('Failed to apply filters');
             }
         } else {
+            // If no search or filters, just display all loaded products
             displayProducts(allProducts);
         }
     }
 
-    // Show add product modal
+    // Show add product modal (for new product)
     function showAddProductModal() {
-        document.getElementById('modalTitle').textContent = 'Add New Product';
+        currentEditProduct = null;
         document.getElementById('productForm').reset();
+        document.getElementById('modalTitle').textContent = 'Add New Product';
         document.getElementById('productId').value = '';
+
+        // Clear image preview
+        const preview = document.getElementById('imagePreview');
+        preview.innerHTML = '<span>No Image</span>';
+
+        document.getElementById('productModal').classList.add('active');
+    }
+
+    // Show edit product modal (for existing product)
+    function showEditModal(product) {
+        currentEditProduct = product; // Store the full product object
+
+        document.getElementById('modalTitle').textContent = `Edit Product: ${product.name}`;
+        document.getElementById('productId').value = product.id;
+
+        // Populate form fields
+        document.getElementById('productName').value = product.name;
+        document.getElementById('productDescription').value = product.description;
+        document.getElementById('productPrice').value = product.price;
+        document.getElementById('productStock').value = product.stockQuantity;
+        document.getElementById('productCategory').value = product.category;
+        document.getElementById('productBrand').value = product.brand || '';
+        document.getElementById('productWeight').value = product.weightKg || '';
+        document.getElementById('productCarbon').value = product.carbonImpact || '';
+        document.getElementById('productLocation').value = product.manufacturingLocation || '';
+
+        // Populate checkboxes
+        document.getElementById('productEcoCertified').checked = product.ecoCertified;
+        document.getElementById('productRecyclable').checked = product.recyclable;
+        document.getElementById('productBiodegradable').checked = product.biodegradable;
+        document.getElementById('productRenewable').checked = product.renewableEnergyUsed;
+        document.getElementById('productCarbonOffset').checked = product.shippingCarbonOffset;
+
+        // Show image preview
+        const preview = document.getElementById('imagePreview');
+        if (product.imageBase64) {
+            preview.innerHTML = `<img src="data:image/jpeg;base64,${product.imageBase64}" alt="Current Image">`;
+        } else {
+            preview.innerHTML = '<span>No Image</span>';
+        }
+
+        // Clear the file input
+        document.getElementById('productImage').value = null;
+
         document.getElementById('productModal').classList.add('active');
     }
 
     // Close modal
     function closeModal() {
         document.getElementById('productModal').classList.remove('active');
+        currentEditProduct = null;
     }
 
-    // Save product
+    // Preview image in modal
+    function previewFile() {
+        const preview = document.getElementById('imagePreview');
+        const file = document.getElementById('productImage').files[0];
+        const reader = new FileReader();
+
+        reader.onloadend = function () {
+            preview.innerHTML = `<img src="${reader.result}" alt="New Image Preview">`;
+        }
+
+        if (file) {
+            reader.readAsDataURL(file);
+        } else if (currentEditProduct && currentEditProduct.imageBase64) {
+             preview.innerHTML = `<img src="data:image/jpeg;base64,${currentEditProduct.imageBase64}" alt="Current Image">`;
+        } else {
+            preview.innerHTML = '<span>No Image</span>';
+        }
+    }
+
+    // Save product (handles both CREATE and PATCH)
     async function saveProduct(event) {
         event.preventDefault();
 
-        const productData = {
-            name: document.getElementById('productName').value,
-            description: document.getElementById('productDescription').value,
-            price: parseFloat(document.getElementById('productPrice').value),
-            stockQuantity: parseInt(document.getElementById('productStock').value) || 0,
-            category: document.getElementById('productCategory').value,
-            brand: document.getElementById('productBrand').value,
-            weightKg: parseFloat(document.getElementById('productWeight').value) || null,
-            carbonImpact: parseFloat(document.getElementById('productCarbon').value) || null,
-            manufacturingLocation: document.getElementById('productLocation').value,
-            ecoCertified: document.getElementById('productEcoCertified').checked,
-            recyclable: document.getElementById('productRecyclable').checked,
-            biodegradable: document.getElementById('productBiodegradable').checked,
-            renewableEnergyUsed: document.getElementById('productRenewable').checked,
-            shippingCarbonOffset: document.getElementById('productCarbonOffset').checked,
-            sellerId: parseInt(document.getElementById('sellerId').value),
-            sellerName: 'Demo Seller'
-        };
-        const formData = new FormData();
+        // Show loading state in button
+        const saveButton = event.target.querySelector('button[type="submit"]');
+        saveButton.textContent = 'Saving...';
+        saveButton.disabled = true;
 
-        // The backend controller expects a part named "product"
+        const productId = document.getElementById('productId').value;
+        const method = productId ? 'PATCH' : 'POST';
+
+        let productData = {};
+
+        // For PATCH, only send values that are different or are required
+        // For POST, send all values
+        if (method === 'PATCH') {
+            // Partial update logic
+            productData = {
+                name: document.getElementById('productName').value,
+                description: document.getElementById('productDescription').value,
+                price: parseFloat(document.getElementById('productPrice').value),
+                stockQuantity: parseInt(document.getElementById('productStock').value) || 0,
+                category: document.getElementById('productCategory').value,
+                brand: document.getElementById('productBrand').value || null,
+                weightKg: parseFloat(document.getElementById('productWeight').value) || null,
+                carbonImpact: parseFloat(document.getElementById('productCarbon').value) || null,
+                manufacturingLocation: document.getElementById('productLocation').value || null,
+                ecoCertified: document.getElementById('productEcoCertified').checked,
+                recyclable: document.getElementById('productRecyclable').checked,
+                biodegradable: document.getElementById('productBiodegradable').checked,
+                renewableEnergyUsed: document.getElementById('productRenewable').checked,
+                shippingCarbonOffset: document.getElementById('productCarbonOffset').checked,
+            };
+        } else {
+            // Create new logic
+            productData = {
+                name: document.getElementById('productName').value,
+                description: document.getElementById('productDescription').value,
+                price: parseFloat(document.getElementById('productPrice').value),
+                stockQuantity: parseInt(document.getElementById('productStock').value) || 0,
+                category: document.getElementById('productCategory').value,
+                brand: document.getElementById('productBrand').value || null,
+                weightKg: parseFloat(document.getElementById('productWeight').value) || null,
+                carbonImpact: parseFloat(document.getElementById('productCarbon').value) || null,
+                manufacturingLocation: document.getElementById('productLocation').value || null,
+                ecoCertified: document.getElementById('productEcoCertified').checked,
+                recyclable: document.getElementById('productRecyclable').checked,
+                biodegradable: document.getElementById('productBiodegradable').checked,
+                renewableEnergyUsed: document.getElementById('productRenewable').checked,
+                shippingCarbonOffset: document.getElementById('productCarbonOffset').checked,
+                sellerId: parseInt(document.getElementById('sellerId').value),
+                sellerName: 'Demo Seller'
+            };
+        }
+
+        const formData = new FormData();
         formData.append('product', new Blob([JSON.stringify(productData)], {
             type: "application/json"
         }));
@@ -905,10 +1151,9 @@
         if (imageFile) {
             formData.append('file', imageFile);
         }
+
         try {
-            const productId = document.getElementById('productId').value;
             const url = productId ? `${API_URL}/${productId}` : API_URL;
-            const method = productId ? 'PUT' : 'POST';
 
             const response = await fetch(url, {
                 method: method,
@@ -916,28 +1161,44 @@
             });
 
             if (response.ok) {
-                alert('Product saved successfully!');
+                showToast(productId ? 'Product updated successfully!' : 'Product created successfully!', 'success');
                 closeModal();
-                loadProducts();
+                loadProducts(); // Refresh the list
             } else {
-                alert('Failed to save product');
+                const errorData = await response.json();
+                console.error('Failed to save product:', errorData);
+                const errorMsg = errorData.errors ? Object.values(errorData.errors).join(', ') : errorData.message;
+                showToast(`Failed to save product: ${errorMsg}`, 'error');
             }
         } catch (error) {
             console.error('Error saving product:', error);
-            alert('Error saving product');
+            showToast('Error saving product: ' + error.message, 'error');
+        } finally {
+            saveButton.textContent = 'Save Product';
+            saveButton.disabled = false;
         }
     }
 
-    // View product details
+    // View product details (now opens edit modal)
     async function viewProduct(id) {
         try {
-            const response = await fetch(`${API_URL}/${id}`);
-            const product = await response.json();
+            // Find product in cache first
+            let product = allProducts.find(p => p.id === id);
 
-            // Show detailed view or open edit modal
-            alert(`Product: ${product.name}\nCarbon: ${product.carbonImpact} kg CO₂e\nRating: ${product.ecoRating}\n\nClick 'Add Product' to create new items`);
+            if (!product) {
+                // If not in cache, fetch it
+                const response = await fetch(`${API_URL}/${id}`);
+                if (!response.ok) {
+                    throw new Error('Product not found');
+                }
+                product = await response.json();
+            }
+
+            showEditModal(product);
+
         } catch (error) {
             console.error('Error viewing product:', error);
+            showToast('Error: Could not load product details.', 'error');
         }
     }
 
@@ -961,6 +1222,17 @@
             </div>
         `;
     }
+
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `toast show ${type}`;
+
+    setTimeout(() => {
+        toast.className = toast.className.replace('show', '');
+    }, 3000);
+}
+
 
     // Close modal on outside click
     document.getElementById('productModal').addEventListener('click', (e) => {
