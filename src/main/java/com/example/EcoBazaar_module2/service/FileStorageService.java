@@ -21,39 +21,26 @@ import java.util.UUID;
 @Slf4j
 public class FileStorageService {
 
-    // This service is no longer used for storing files in the ProductService,
-    // as images are now saved directly to the database.
-    // Leaving the class structure in case it's needed for other file types later.
-
-    @Value("${file.upload-dir:#{null}}") // Make property optional
+    @Value("${file.upload-dir}")
     private String uploadDir;
 
     private Path uploadPath;
 
     @PostConstruct
     public void init() {
-        if (uploadDir != null) {
-            try {
-                uploadPath = Paths.get(uploadDir);
-                Files.createDirectories(uploadPath);
-                log.info("Initialized upload directory at: {}", uploadPath.toAbsolutePath());
-            } catch (IOException e) {
-                log.warn("Could not initialize storage location. This is OK if file.upload-dir is not set.", e);
-            }
-        } else {
-            log.info("file.upload-dir not set. File system storage service is disabled.");
+        try {
+            uploadPath = Paths.get(uploadDir);
+            Files.createDirectories(uploadPath);
+            log.info("Initialized upload directory at: {}", uploadPath.toAbsolutePath());
+        } catch (IOException e) {
+            throw new StorageException("Could not initialize storage location", e);
         }
     }
 
     /**
-     * This method is no longer used by ProductService.
-     * @param file
-     * @return
+     * Store file and return the accessible URL
      */
     public String storeFile(MultipartFile file) {
-        if (uploadPath == null) {
-            throw new StorageException("Storage location is not configured.");
-        }
         if (file.isEmpty()) {
             throw new StorageException("Failed to store empty file.");
         }
@@ -70,7 +57,7 @@ public class FileStorageService {
 
             log.info("Stored file: {}", uniqueFilename);
 
-            // This URL refers to the file system path, which is no longer the primary storage.
+            // Return the URL that can be used to access this file
             return ServletUriComponentsBuilder.fromCurrentContextPath()
                     .path("/uploads/")
                     .path(uniqueFilename)
@@ -78,6 +65,19 @@ public class FileStorageService {
 
         } catch (IOException e) {
             throw new StorageException("Failed to store file " + originalFilename, e);
+        }
+    }
+
+    /**
+     * Delete file from storage
+     */
+    public void deleteFile(String filename) {
+        try {
+            Path filePath = uploadPath.resolve(filename);
+            Files.deleteIfExists(filePath);
+            log.info("Deleted file: {}", filename);
+        } catch (IOException e) {
+            log.error("Failed to delete file: {}", filename, e);
         }
     }
 }

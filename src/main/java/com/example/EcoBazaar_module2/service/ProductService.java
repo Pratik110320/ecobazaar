@@ -1,12 +1,10 @@
 package com.example.EcoBazaar_module2.service;
 
-
 import com.example.EcoBazaar_module2.dtos.ProductFilterDTO;
 import com.example.EcoBazaar_module2.dtos.ProductRequestDTO;
 import com.example.EcoBazaar_module2.dtos.ProductResponseDTO;
-import com.example.EcoBazaar_module2.dtos.ProductUpdateDTO; // Import the new DTO
+import com.example.EcoBazaar_module2.dtos.ProductUpdateDTO;
 import com.example.EcoBazaar_module2.exceptions.ResourceNotFoundException;
-import com.example.EcoBazaar_module2.exceptions.StorageException;
 import com.example.EcoBazaar_module2.model.Product;
 import com.example.EcoBazaar_module2.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,12 +13,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
-import java.io.IOException;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Base64;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,7 +26,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final CarbonCalculatorService carbonCalculatorService;
-    // private final FileStorageService fileStorageService; // No longer needed for file storage
+    private final FileStorageService fileStorageService;
 
     /**
      * Create a new product
@@ -48,7 +44,6 @@ public class ProductService {
                 .category(request.getCategory())
                 .subCategory(request.getSubCategory())
                 .brand(request.getBrand())
-                // imageUrl is removed, imageData will be set below
                 .stockQuantity(request.getStockQuantity())
                 .weightKg(request.getWeightKg())
                 .dimensions(request.getDimensions())
@@ -63,13 +58,11 @@ public class ProductService {
                 .verified(false)
                 .build();
 
-        // Handle file upload -> save bytes to DB
+        // Handle file upload -> store file and save URL
         if (file != null && !file.isEmpty()) {
-            try {
-                product.setImageData(file.getBytes());
-            } catch (IOException e) {
-                throw new StorageException("Failed to store file " + file.getOriginalFilename(), e);
-            }
+            String imageUrl = fileStorageService.storeFile(file);
+            product.setImageUrl(imageUrl);
+            log.info("Stored product image at: {}", imageUrl);
         }
 
         // Calculate or set carbon footprint
@@ -169,12 +162,9 @@ public class ProductService {
 
         // Handle file update
         if (file != null && !file.isEmpty()) {
-            try {
-                product.setImageData(file.getBytes());
-                log.info("Updated image for product ID: {}", id);
-            } catch (IOException e) {
-                throw new StorageException("Failed to store file " + file.getOriginalFilename(), e);
-            }
+            String imageUrl = fileStorageService.storeFile(file);
+            product.setImageUrl(imageUrl);
+            log.info("Updated image for product ID: {} at: {}", id, imageUrl);
         }
 
         // Update carbon impact if provided manually
@@ -322,12 +312,6 @@ public class ProductService {
      * Map entity to DTO
      */
     private ProductResponseDTO mapToResponseDTO(Product product) {
-        // Encode image data to Base64 string for the DTO
-        String imageBase64 = null;
-        if (product.getImageData() != null && product.getImageData().length > 0) {
-            imageBase64 = Base64.getEncoder().encodeToString(product.getImageData());
-        }
-
         return ProductResponseDTO.builder()
                 .id(product.getId())
                 .name(product.getName())
@@ -338,7 +322,7 @@ public class ProductService {
                 .category(product.getCategory())
                 .subCategory(product.getSubCategory())
                 .brand(product.getBrand())
-                .imageBase64(imageBase64) // Set Base64 string
+                .imageUrl(product.getImageUrl())
                 .stockQuantity(product.getStockQuantity())
                 .weightKg(product.getWeightKg())
                 .dimensions(product.getDimensions())

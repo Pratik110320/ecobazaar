@@ -24,7 +24,7 @@ public class ProductResponseDTO {
     private String category;
     private String subCategory;
     private String brand;
-    private String imageBase64; // Changed from imageUrl
+    private String imageUrl; // Changed from imageBase64 to imageUrl
     private Integer stockQuantity;
     private BigDecimal weightKg;
     private String dimensions;
@@ -54,6 +54,4 @@ public class ProductResponseDTO {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-
-    // All manual constructors, getters, setters, and Builder class removed.
 }
