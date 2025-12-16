@@ -1,155 +1,109 @@
 package com.example.EcoBazaar_module2.controller;
 
-import com.example.EcoBazaar_module2.dtos.ProductFilterDTO;
-import com.example.EcoBazaar_module2.dtos.ProductRequestDTO;
-import com.example.EcoBazaar_module2.dtos.ProductResponseDTO;
-import com.example.EcoBazaar_module2.dtos.ProductUpdateDTO;
-import com.example.EcoBazaar_module2.service.ProductService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
+
+import com.example.EcoBazaar_module2.model.Product;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.repository.JpaRepository;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.math.BigDecimal;
+
 import java.util.List;
+
+interface ProductRepository extends JpaRepository<Product, Long> {
+    List<Product> findByCategory(String category);
+    List<Product> findByIsVerifiedTrue();
+    List<Product> findByIsVerifiedFalse(); // For Admin
+    List<Product> findBySellerId(Long sellerId); // For Sellers
+}
 
 @RestController
 @RequestMapping("/api/products")
-@RequiredArgsConstructor
-@Slf4j
-@Tag(name = "Product Catalog", description = "Carbon-Aware Product Management APIs")
-@CrossOrigin(origins = "*")
 public class ProductController {
 
-    private final ProductService productService;
+    @Autowired
+    private ProductRepository productRepository;
 
-    /**
-     * Create new product
-     * CHANGED: Now accepts imageUrl in JSON body, file parameter optional for backward compatibility
-     */
-    @PostMapping(consumes = {"multipart/form-data"})
-    @Operation(summary = "Create a new product with carbon footprint data")
-    public ResponseEntity<ProductResponseDTO> createProduct(
-            @Valid @RequestPart("product") ProductRequestDTO request,
-            @RequestParam(value = "file", required = false) MultipartFile file
-    ) {
-        log.info("REST request to create product: {}", request.getName());
-        ProductResponseDTO response = productService.createProduct(request, file);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
+    // --- PUBLIC ENDPOINTS ---
 
-    /**
-     * Partially update existing product
-     * CHANGED: Now accepts imageUrl in JSON body, file parameter optional for backward compatibility
-     */
-    @PatchMapping(value = "/{id}", consumes = {"multipart/form-data"})
-    @Operation(summary = "Partially update an existing product")
-    public ResponseEntity<ProductResponseDTO> updateProduct(
-            @PathVariable Long id,
-            @Valid @RequestPart("product") ProductUpdateDTO request,
-            @RequestParam(value = "file", required = false) MultipartFile file
-    ) {
-        log.info("REST request to PATCH product with ID: {}", id);
-        ProductResponseDTO response = productService.updateProduct(id, request, file);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Get product by ID
-     */
-    @GetMapping("/{id}")
-    @Operation(summary = "Get product details by ID")
-    public ResponseEntity<ProductResponseDTO> getProductById(@PathVariable Long id) {
-        log.info("REST request to get product with ID: {}", id);
-        ProductResponseDTO response = productService.getProductById(id);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Get all products
-     */
+    // Module 2: Get All Verified Products (Catalog)
     @GetMapping
-    @Operation(summary = "Get all active products")
-    public ResponseEntity<List<ProductResponseDTO>> getAllProducts() {
-        log.info("REST request to get all products");
-        List<ProductResponseDTO> products = productService.getAllProducts();
-        return ResponseEntity.ok(products);
+    public List<Product> getAllProducts() {
+        return productRepository.findByIsVerifiedTrue();
     }
 
-    /**
-     * Search products by keyword
-     */
-    @GetMapping("/search")
-    @Operation(summary = "Search products by keyword in name or description")
-    public ResponseEntity<List<ProductResponseDTO>> searchProducts(
-            @RequestParam String keyword) {
-        log.info("REST request to search products with keyword: {}", keyword);
-        List<ProductResponseDTO> products = productService.searchProducts(keyword);
-        return ResponseEntity.ok(products);
+    // Module 2: Get Product Details & Carbon Breakdown
+    @GetMapping("/{id}")
+    public ResponseEntity<Product> getProduct(@PathVariable Long id) {
+        return productRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * Filter products with advanced criteria
-     * CHANGED: Now supports sorting by carbon footprint (sortBy=carbon, sortOrder=asc/desc)
-     */
-    @PostMapping("/filter")
-    @Operation(summary = "Filter products with multiple criteria including carbon footprint sorting")
-    public ResponseEntity<List<ProductResponseDTO>> filterProducts(
-            @RequestBody ProductFilterDTO filter) {
-        log.info("REST request to filter products with sortBy: {}, sortOrder: {}",
-                filter.getSortBy(), filter.getSortOrder());
-        List<ProductResponseDTO> products = productService.filterProducts(filter);
-        return ResponseEntity.ok(products);
+    // --- SELLER ENDPOINTS ---
+
+    // Module 2: Add Product (Seller)
+    @PostMapping("/add")
+    public Product addProduct(@RequestBody Product product) {
+        product.setVerified(false); // Default to unverified
+        calculateRating(product);
+        return productRepository.save(product);
     }
 
-    /**
-     * Get low carbon products
-     */
-    @GetMapping("/low-carbon")
-    @Operation(summary = "Get products with carbon footprint below threshold")
-    public ResponseEntity<List<ProductResponseDTO>> getLowCarbonProducts(
-            @RequestParam(defaultValue = "5.0") BigDecimal maxImpact) {
-        log.info("REST request to get low carbon products (max: {})", maxImpact);
-        List<ProductResponseDTO> products = productService.getLowCarbonProducts(maxImpact);
-        return ResponseEntity.ok(products);
+    // Module 2: Seller Dashboard - View My Products
+    @GetMapping("/seller/{sellerId}")
+    public List<Product> getSellerProducts(@PathVariable Long sellerId) {
+        return productRepository.findBySellerId(sellerId);
     }
 
-    /**
-     * Get eco-certified products
-     */
-    @GetMapping("/eco-certified")
-    @Operation(summary = "Get all eco-certified products")
-    public ResponseEntity<List<ProductResponseDTO>> getEcoCertifiedProducts() {
-        log.info("REST request to get eco-certified products");
-        List<ProductResponseDTO> products = productService.getEcoCertifiedProducts();
-        return ResponseEntity.ok(products);
+    // Module 2: Update Product (Seller) - NO DELETE ALLOWED
+    @PutMapping("/update/{id}")
+    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product productDetails) {
+        return productRepository.findById(id).map(product -> {
+            product.setName(productDetails.getName());
+            product.setDescription(productDetails.getDescription());
+            product.setPrice(productDetails.getPrice());
+            product.setImageUrl(productDetails.getImageUrl());
+            product.setCategory(productDetails.getCategory());
+
+            // If Carbon Footprint changes, re-trigger verification logic
+            if (!product.getCarbonFootprint().equals(productDetails.getCarbonFootprint())) {
+                product.setCarbonFootprint(productDetails.getCarbonFootprint());
+                product.setVerified(false); // Reset verification if environmental data changes
+                calculateRating(product);
+            }
+
+            Product updatedProduct = productRepository.save(product);
+            return ResponseEntity.ok(updatedProduct);
+        }).orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * Get eco-friendly alternatives
-     */
-    @GetMapping("/{id}/alternatives")
-    @Operation(summary = "Get eco-friendly alternatives for a product")
-    public ResponseEntity<List<ProductResponseDTO>> getEcoAlternatives(
-            @PathVariable Long id) {
-        log.info("REST request to get alternatives for product: {}", id);
-        List<ProductResponseDTO> alternatives = productService.getEcoAlternatives(id);
-        return ResponseEntity.ok(alternatives);
+    // --- ADMIN ENDPOINTS ---
+
+    // Module 5: Admin - Verify Product
+    @PutMapping("/admin/verify/{id}")
+    public ResponseEntity<?> verifyProduct(@PathVariable Long id) {
+        return productRepository.findById(id).map(product -> {
+            product.setVerified(true);
+            productRepository.save(product);
+            return ResponseEntity.ok("Product verified.");
+        }).orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * Delete product (soft delete)
-     */
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Delete a product (soft delete)")
-    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-        log.info("REST request to delete product with ID: {}", id);
-        productService.deleteProduct(id);
-        return ResponseEntity.noContent().build();
+    // Module 5: Admin - List Pending Products
+    @GetMapping("/admin/pending")
+    public List<Product> getPendingProducts() {
+        return productRepository.findByIsVerifiedFalse();
+    }
+
+    // Helper method for Eco Rating
+    private void calculateRating(Product product) {
+        if (product.getCarbonFootprint() == null) return;
+
+        if (product.getCarbonFootprint() < 2.0) product.setEcoRating("A+");
+        else if (product.getCarbonFootprint() < 5.0) product.setEcoRating("B");
+        else product.setEcoRating("C");
     }
 }
