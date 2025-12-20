@@ -29,7 +29,13 @@ public class Product {
     @Column(nullable = false)
     private Double price;
 
-    private String imageUrl;
+    @Column(nullable = false)
+    private Integer quantity = 1;
+
+    private String imageUrl; // Kept for URL compatibility
+
+    private String imagePath; // New field for local file path
+
     private String category;
 
     @ManyToOne

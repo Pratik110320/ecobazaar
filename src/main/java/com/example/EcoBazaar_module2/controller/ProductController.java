@@ -20,8 +20,20 @@ public class ProductController {
     private ProductService productService;
 
     @GetMapping
-    public ResponseEntity<List<Map<String, Object>>> getAllProducts() {
-        List<Product> products = productService.getAllVerifiedProducts();
+    public ResponseEntity<List<Map<String, Object>>> getAllProducts(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) Double maxCarbon
+    ) {
+        List<Product> products;
+        if (search == null && category == null && minPrice == null && maxPrice == null && maxCarbon == null) {
+            products = productService.getAllVerifiedProducts();
+        } else {
+            products = productService.searchProducts(search, category, minPrice, maxPrice, maxCarbon);
+        }
+
         return ResponseEntity.ok(products.stream()
                 .map(this::toProductDTO)
                 .collect(Collectors.toList()));
@@ -33,15 +45,17 @@ public class ProductController {
         return ResponseEntity.ok(toProductDTO(product));
     }
 
-    @PostMapping("/seller/add")
+    @PostMapping("/add")
     public ResponseEntity<?> addProduct(@RequestBody Map<String, Object> request) {
         try {
-            Long sellerId = Long.valueOf(request.get("sellerId").toString());
+            Long userId = Long.valueOf(request.get("userId").toString());
             String name = request.get("name").toString();
             String description = request.get("description").toString();
             Double price = Double.valueOf(request.get("price").toString());
+            Integer quantity = Integer.valueOf(request.getOrDefault("quantity", 1).toString());
             String category = request.get("category").toString();
             String imageUrl = request.getOrDefault("imageUrl", "").toString();
+            String imagePath = request.getOrDefault("imagePath", "").toString();
 
             ProductCarbonData carbonData = new ProductCarbonData();
             carbonData.setManufacturing(Double.valueOf(request.getOrDefault("manufacturing", 0.0).toString()));
@@ -50,12 +64,50 @@ public class ProductController {
             carbonData.setUsage(Double.valueOf(request.getOrDefault("usage", 0.0).toString()));
             carbonData.setDisposal(Double.valueOf(request.getOrDefault("disposal", 0.0).toString()));
 
-            Product product = productService.createProduct(sellerId, name, description, price,
-                    category, imageUrl, carbonData);
+            Product product = productService.createProduct(userId, name, description, price, quantity,
+                    category, imageUrl, imagePath, carbonData);
 
             return ResponseEntity.ok(toProductDTO(product));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateProduct(@PathVariable Long id, @RequestBody Map<String, Object> request) {
+        try {
+            Long userId = Long.valueOf(request.get("userId").toString());
+            String name = request.get("name").toString();
+            String description = request.get("description").toString();
+            Double price = Double.valueOf(request.get("price").toString());
+            Integer quantity = Integer.valueOf(request.getOrDefault("quantity", 1).toString());
+            String category = request.get("category").toString();
+            String imageUrl = request.getOrDefault("imageUrl", "").toString();
+            String imagePath = request.getOrDefault("imagePath", "").toString();
+
+            ProductCarbonData carbonData = new ProductCarbonData();
+            carbonData.setManufacturing(Double.valueOf(request.getOrDefault("manufacturing", 0.0).toString()));
+            carbonData.setTransportation(Double.valueOf(request.getOrDefault("transportation", 0.0).toString()));
+            carbonData.setPackaging(Double.valueOf(request.getOrDefault("packaging", 0.0).toString()));
+            carbonData.setUsage(Double.valueOf(request.getOrDefault("usage", 0.0).toString()));
+            carbonData.setDisposal(Double.valueOf(request.getOrDefault("disposal", 0.0).toString()));
+
+            Product product = productService.updateProduct(userId, id, name, description, price, quantity,
+                    category, imageUrl, imagePath, carbonData);
+
+            return ResponseEntity.ok(toProductDTO(product));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteProduct(@PathVariable Long id, @RequestParam Long userId) {
+        try {
+            productService.deleteProduct(userId, id);
+            return ResponseEntity.ok(Map.of("message", "Product deleted successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -91,7 +143,15 @@ public class ProductController {
         dto.put("name", product.getName());
         dto.put("description", product.getDescription());
         dto.put("price", product.getPrice());
-        dto.put("imageUrl", product.getImageUrl());
+        dto.put("quantity", product.getQuantity());
+
+        // Prefer served image path over generic URL if available
+        if (product.getImagePath() != null && !product.getImagePath().isEmpty()) {
+            dto.put("imageUrl", "/api/images/" + product.getImagePath());
+        } else {
+            dto.put("imageUrl", product.getImageUrl());
+        }
+
         dto.put("category", product.getCategory());
         dto.put("carbonFootprint", product.getTotalCarbonFootprint());
         dto.put("ecoRating", product.getEcoRating());
