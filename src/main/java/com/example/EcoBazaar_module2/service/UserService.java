@@ -74,4 +74,9 @@ public class UserService {
 
         auditService.log(adminId, "ACTIVATE_USER", "USER", userId, null);
     }
+
+    public User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+    }
 }

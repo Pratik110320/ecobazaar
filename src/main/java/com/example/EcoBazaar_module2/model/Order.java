@@ -36,9 +36,22 @@ public class Order {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OrderStatus status = OrderStatus.CONFIRMED;
+    private OrderStatus status;
+
+    // --- NEW SIMPLE FIELDS ---
+    @Column(nullable = false)
+    private String shippingAddress; // Just a simple string: "123 Main St, New York"
+
+    @Column(nullable = false)
+    private String phoneNumber;     // Contact number for this specific order
+
+    @Column(nullable = false)
+    private String paymentMethod;   // "Credit Card", "COD", etc.
+
+    @Column(nullable = false)
+    private String paymentStatus;   // "PAID", "PENDING"
+    // -------------------------
 
     @CreationTimestamp
     private LocalDateTime createdAt;
 }
-
