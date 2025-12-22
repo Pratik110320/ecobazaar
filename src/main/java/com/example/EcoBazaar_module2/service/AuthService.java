@@ -18,8 +18,19 @@ public class AuthService {
 
     @Transactional
     public User registerUser(String email, String password, String fullName, Role role) {
+        // Validate email is not already in use
         if (userRepository.findByEmail(email).isPresent()) {
             throw new RuntimeException("Email already in use");
+        }
+
+        // IMPORTANT: Restrict role creation - only SELLER and USER can be created via signup
+        if (role == Role.ADMIN) {
+            throw new RuntimeException("Admin accounts cannot be created through registration. Please contact system administrator.");
+        }
+
+        // Only allow SELLER and USER roles
+        if (role != Role.SELLER && role != Role.USER) {
+            throw new RuntimeException("Invalid role. Only SELLER and USER (Shopper) roles are allowed for registration.");
         }
 
         User user = new User();

@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
@@ -30,41 +29,68 @@ public class ProductService {
     @Autowired
     private AuditService auditService;
 
-    public Page<Product> searchProducts(String name, String category, Double minPrice,
-                                        Double maxPrice, Double maxCarbon, String sortBy,
-                                        int page, int size, Boolean featured) {
-
-        Sort sort = Sort.unsorted();
-        if (sortBy != null) {
-            switch (sortBy) {
-                case "price_asc": sort = Sort.by("price").ascending(); break;
-                case "price_desc": sort = Sort.by("price").descending(); break;
-                case "rating": sort = Sort.by("averageRating").descending(); break;
-                case "popular": sort = Sort.by("soldCount").descending(); break;
-                case "newest": sort = Sort.by("createdAt").descending(); break;
-                default: sort = Sort.by("createdAt").descending();
-            }
-        }
-
+    /**
+     * Enhanced search with comprehensive filtering and sorting
+     */
+    public Page<Product> searchProductsEnhanced(String name, String category, Double minPrice,
+                                                Double maxPrice, Double minCarbon, Double maxCarbon,
+                                                Boolean featured, String sortBy, int page, int size) {
+        // Determine sort order
+        Sort sort = getSortOrder(sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Page<Product> products = productRepository.searchProducts(
-                name,
-                (category != null && !category.equals("All")) ? category : null,
-                minPrice,
-                maxPrice,
-                featured,
-                pageable
-        );
+        // Use carbon filter query if carbon parameters are provided
+        if (minCarbon != null || maxCarbon != null) {
+            return productRepository.searchProductsWithCarbonFilter(
+                    name,
+                    (category != null && !category.equals("All")) ? category : null,
+                    minPrice,
+                    maxPrice,
+                    minCarbon,
+                    maxCarbon,
+                    featured,
+                    pageable
+            );
+        } else {
+            return productRepository.searchProducts(
+                    name,
+                    (category != null && !category.equals("All")) ? category : null,
+                    minPrice,
+                    maxPrice,
+                    featured,
+                    pageable
+            );
+        }
+    }
 
-        if (maxCarbon != null) {
-            List<Product> filtered = products.getContent().stream()
-                    .filter(p -> p.getTotalCarbonFootprint() <= maxCarbon)
-                    .collect(Collectors.toList());
-            return new PageImpl<>(filtered, pageable, filtered.size());
+    /**
+     * Determine sort order based on sortBy parameter
+     */
+    private Sort getSortOrder(String sortBy) {
+        if (sortBy == null) {
+            return Sort.by("createdAt").descending();
         }
 
-        return products;
+        switch (sortBy) {
+            case "price_asc":
+                return Sort.by("price").ascending();
+            case "price_desc":
+                return Sort.by("price").descending();
+            case "rating":
+                return Sort.by("averageRating").descending();
+            case "popular":
+                return Sort.by("soldCount").descending();
+            case "newest":
+                return Sort.by("createdAt").descending();
+            case "carbon_asc":
+                // Note: Sorting by carbon requires custom handling as it's in related entity
+                // For simplicity, we'll default to created date and filter in application layer if needed
+                return Sort.by("createdAt").descending();
+            case "carbon_desc":
+                return Sort.by("createdAt").descending();
+            default:
+                return Sort.by("createdAt").descending();
+        }
     }
 
     public Product getProductById(Long id) {

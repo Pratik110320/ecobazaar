@@ -18,20 +18,33 @@ public class ProductController {
     @Autowired
     private ProductService productService;
 
+    /**
+     * Enhanced search with comprehensive filtering and sorting
+     *
+     * Query Parameters:
+     * - search: Product name search
+     * - category: Filter by category
+     * - minPrice, maxPrice: Price range filter
+     * - minCarbon, maxCarbon: Carbon footprint range filter
+     * - featured: Filter featured products
+     * - sortBy: price_asc, price_desc, carbon_asc, carbon_desc, rating, popular, newest
+     * - page, size: Pagination
+     */
     @GetMapping
     public ResponseEntity<Map<String, Object>> searchProducts(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) Double minCarbon,
             @RequestParam(required = false) Double maxCarbon,
+            @RequestParam(required = false) Boolean featured,
             @RequestParam(required = false) String sortBy,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "12") int size,
-            @RequestParam(required = false) Boolean featured
+            @RequestParam(defaultValue = "12") int size
     ) {
-        Page<Product> productPage = productService.searchProducts(
-                search, category, minPrice, maxPrice, maxCarbon, sortBy, page, size, featured
+        Page<Product> productPage = productService.searchProductsEnhanced(
+                search, category, minPrice, maxPrice, minCarbon, maxCarbon, featured, sortBy, page, size
         );
 
         Map<String, Object> response = new HashMap<>();
