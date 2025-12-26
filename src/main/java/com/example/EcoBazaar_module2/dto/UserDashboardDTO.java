@@ -20,4 +20,3 @@ public class UserDashboardDTO {
     private Map<String, Double> categoryBreakdown;
     private Map<String, Integer> ecoRatingDistribution;
 }
-
