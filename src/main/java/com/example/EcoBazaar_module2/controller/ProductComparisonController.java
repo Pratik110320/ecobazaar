@@ -17,12 +17,12 @@ public class ProductComparisonController {
     @Autowired
     private ProductService productService;
 
-    // 1. AUTO COMPARE: Efficiently gets top 5 alternatives (Fixes "Loading..." issue)
+
     @GetMapping("/{id}/compare")
     public ResponseEntity<Map<String, Object>> compareWithAlternatives(@PathVariable Long id) {
         try {
             Product currentProduct = productService.getProductById(id);
-            // Now fetches only 5 records from DB, not all records
+
             List<Product> alternatives = productService.getSimilarProductsByCategory(
                     currentProduct.getCategory(),
                     currentProduct.getId(),
@@ -35,8 +35,7 @@ public class ProductComparisonController {
         }
     }
 
-    // 2. MANUAL COMPARE: Compare Product A vs Product B (Flipkart Style)
-    // Usage: /api/products/compare-manual?id1=123&id2=456
+
     @GetMapping("/compare-manual")
     public ResponseEntity<Map<String, Object>> compareManual(@RequestParam Long id1, @RequestParam Long id2) {
         try {
@@ -51,7 +50,7 @@ public class ProductComparisonController {
         }
     }
 
-    // Shared Helper to build response
+
     private Map<String, Object> buildComparisonResponse(Product current, List<Product> alternatives) {
         Map<String, Object> comparison = new HashMap<>();
         comparison.put("currentProduct", toProductDTO(current));
