@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -19,7 +18,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -35,32 +33,49 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
                 .authorizeHttpRequests(auth -> auth
+
+                        // ---------- PUBLIC ----------
                         .requestMatchers(
                                 "/",
                                 "/index.html",
                                 "/static/**",
                                 "/*.ico",
-                                "/*.json",
                                 "/*.png",
+                                "/*.json",
                                 "/api/auth/**",
-                                "/css/**",
-                                "/js/**",
                                 "/api/images/**",
-                                "/api/public/**",
+                                "/api/products/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // ---------- USER ----------
+                        .requestMatchers(
+                                "/api/cart/**",
+                                "/api/wishlist/**",
+                                "/api/orders/**",
+                                "/api/dashboard/**"
+                        ).hasAnyRole("USER", "SELLER", "ADMIN")
+
+                        // ---------- SELLER ----------
                         .requestMatchers("/api/seller/**").hasRole("SELLER")
-                        .requestMatchers("/api/user/**").hasAnyRole("USER", "SELLER", "ADMIN")
+
+                        // ---------- ADMIN ----------
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // ---------- EVERYTHING ELSE ----------
                         .anyRequest().authenticated()
                 )
+
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()));
 
         http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
@@ -70,29 +85,42 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Allow specific origins from environment variable, or default to localhost for development
-        // In Render, we will set FRONTEND_URL to the actual URL
         String frontendUrl = System.getenv("FRONTEND_URL");
-        if (frontendUrl != null && !frontendUrl.isEmpty()) {
-            configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", frontendUrl));
+
+        if (frontendUrl != null && !frontendUrl.isBlank()) {
+            configuration.setAllowedOrigins(Arrays.asList(
+                    "http://localhost:3000",
+                    frontendUrl
+            ));
         } else {
             configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
         }
 
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"));
+        configuration.setAllowedMethods(Arrays.asList(
+                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
+        ));
+
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"
+        ));
+
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
         source.registerCorsConfiguration("/**", configuration);
+
         return source;
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 }
