@@ -42,7 +42,7 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // ---------- PUBLIC ----------
+                        // ---------- PUBLIC ENDPOINTS ----------
                         .requestMatchers(
                                 "/",
                                 "/index.html",
@@ -52,25 +52,45 @@ public class SecurityConfig {
                                 "/*.json",
                                 "/api/auth/**",
                                 "/api/images/**",
-                                "/api/products/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
 
-                        // ---------- USER ----------
+                        // ---------- PRODUCTS - PUBLIC (Read only) ----------
+                        .requestMatchers(
+                                "/api/products",
+                                "/api/products/**",
+                                "/api/categories",
+                                "/api/categories/**"
+                        ).permitAll()
+
+                        // ---------- COMMUNITY - PUBLIC ----------
+                        .requestMatchers(
+                                "/api/community/**",
+                                "/api/carbon/report/**"
+                        ).permitAll()
+
+                        // ---------- USER ENDPOINTS ----------
                         .requestMatchers(
                                 "/api/cart/**",
                                 "/api/wishlist/**",
                                 "/api/orders/**",
-                                "/api/dashboard/**"
+                                "/api/dashboard/user/**",
+                                "/api/reviews/**"
                         ).hasAnyRole("USER", "SELLER", "ADMIN")
 
-                        // ---------- SELLER ----------
-                        .requestMatchers("/api/seller/**").hasRole("SELLER")
+                        // ---------- SELLER ENDPOINTS ----------
+                        .requestMatchers(
+                                "/api/dashboard/seller/**",
+                                "/api/seller/**"
+                        ).hasAnyRole("SELLER", "ADMIN")
 
-                        // ---------- ADMIN ----------
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // ---------- ADMIN ENDPOINTS ----------
+                        .requestMatchers(
+                                "/api/admin/**",
+                                "/api/dashboard/admin/**"
+                        ).hasRole("ADMIN")
 
                         // ---------- EVERYTHING ELSE ----------
                         .anyRequest().authenticated()
@@ -93,10 +113,14 @@ public class SecurityConfig {
         if (frontendUrl != null && !frontendUrl.isBlank()) {
             configuration.setAllowedOrigins(Arrays.asList(
                     "http://localhost:3000",
+                    "http://localhost:5173",
                     frontendUrl
             ));
         } else {
-            configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+            configuration.setAllowedOrigins(Arrays.asList(
+                    "http://localhost:3000",
+                    "http://localhost:5173"
+            ));
         }
 
         configuration.setAllowedMethods(Arrays.asList(
