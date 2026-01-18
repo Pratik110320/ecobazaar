@@ -5,7 +5,7 @@ import com.example.EcoBazaar_module2.model.*;
 import com.example.EcoBazaar_module2.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -37,6 +37,7 @@ public class DashboardService {
     private ReviewRepository reviewRepository;
 
     // ============= ENHANCED USER DASHBOARD =============
+    @Transactional(readOnly = true)
     public UserDashboardDTO getUserDashboard(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -663,6 +664,7 @@ public class DashboardService {
     }
 
     // ============= SELLER DASHBOARD (UNCHANGED) =============
+    @Transactional(readOnly = true)
     public SellerDashboardDTO getSellerDashboard(Long sellerId) {
         User seller = userRepository.findById(sellerId)
                 .orElseThrow(() -> new RuntimeException("Seller not found"));
@@ -788,6 +790,7 @@ public class DashboardService {
     }
 
     // ============= ADMIN DASHBOARD (UNCHANGED) =============
+    @Transactional(readOnly = true)
     public AdminDashboardDTO getAdminDashboard() {
         AdminDashboardDTO dashboard = new AdminDashboardDTO();
 
