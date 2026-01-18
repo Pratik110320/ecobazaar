@@ -2,25 +2,23 @@ package com.example.EcoBazaar_module2;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @SpringBootApplication
 public class EcoBazaarModule2Application {
 
 	public static void main(String[] args) {
 		SpringApplication.run(EcoBazaarModule2Application.class, args);
+
+		// Log startup information
+		System.out.println("=====================================");
+		System.out.println("✓ EcoBazaar Backend Started Successfully");
+		System.out.println("✓ Environment: " + System.getenv().getOrDefault("ENVIRONMENT", "development"));
+		System.out.println("✓ Database: " + (System.getenv("DB_URL") != null ? "Connected to Neon PostgreSQL" : "Using local database"));
+		System.out.println("✓ CORS Origins: " + System.getenv().getOrDefault("ALLOWED_ORIGINS", "localhost only"));
+		System.out.println("=====================================");
 	}
-	@Bean
-	public WebMvcConfigurer corsConfigurer() {
-		return new WebMvcConfigurer() {
-			@Override
-			public void addCorsMappings(CorsRegistry registry) {
-				registry.addMapping("/**")
-						.allowedOrigins("http://localhost:4200")
-						.allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
-			}
-		};
-	}
+
+	// REMOVED: Duplicate CORS configuration
+	// The CORS configuration is now handled entirely in SecurityConfig.java
+	// Having multiple CORS configurations can cause conflicts
 }

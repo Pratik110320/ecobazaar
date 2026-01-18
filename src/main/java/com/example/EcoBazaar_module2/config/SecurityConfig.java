@@ -18,6 +18,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -54,7 +56,9 @@ public class SecurityConfig {
                                 "/api/images/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html"
+                                "/swagger-ui.html",
+                                "/error",
+                                "/favicon.ico"
                         ).permitAll()
 
                         // ---------- PRODUCTS - PUBLIC (Read only) ----------
@@ -71,14 +75,14 @@ public class SecurityConfig {
                                 "/api/carbon/report/**"
                         ).permitAll()
 
-                        // ---------- USER ENDPOINTS ----------
+                        // ---------- USER ENDPOINTS - REQUIRE AUTH ----------
                         .requestMatchers(
                                 "/api/cart/**",
                                 "/api/wishlist/**",
                                 "/api/orders/**",
                                 "/api/dashboard/user/**",
                                 "/api/reviews/**"
-                        ).hasAnyRole("USER", "SELLER", "ADMIN")
+                        ).authenticated()
 
                         // ---------- SELLER ENDPOINTS ----------
                         .requestMatchers(
@@ -108,35 +112,62 @@ public class SecurityConfig {
 
         CorsConfiguration configuration = new CorsConfiguration();
 
-        String frontendUrl = System.getenv("FRONTEND_URL");
+        // Read allowed origins from environment variable with fallback
+        String allowedOriginsEnv = System.getenv("ALLOWED_ORIGINS");
 
-        if (frontendUrl != null && !frontendUrl.isBlank()) {
-            configuration.setAllowedOrigins(Arrays.asList(
+        List<String> allowedOrigins;
+
+        if (allowedOriginsEnv != null && !allowedOriginsEnv.isBlank()) {
+            // Split by comma and trim whitespace
+            allowedOrigins = Arrays.stream(allowedOriginsEnv.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
+
+            System.out.println("✓ CORS: Using environment variable ALLOWED_ORIGINS");
+            System.out.println("✓ Allowed origins: " + allowedOrigins);
+        } else {
+            // Fallback to hardcoded values for local development
+            allowedOrigins = Arrays.asList(
                     "http://localhost:3000",
                     "http://localhost:5173",
-                    frontendUrl
-            ));
-        } else {
-            configuration.setAllowedOrigins(Arrays.asList(
-                    "http://localhost:3000",
-                    "http://localhost:5173"
-            ));
+                    "http://localhost:4200",
+                    "http://localhost:8080"
+            );
+
+            System.out.println("⚠ CORS: No ALLOWED_ORIGINS env var found, using default localhost origins");
+            System.out.println("✓ Allowed origins: " + allowedOrigins);
         }
 
+        configuration.setAllowedOrigins(allowedOrigins);
+
+        // Allow all common HTTP methods
         configuration.setAllowedMethods(Arrays.asList(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
+                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"
         ));
 
+        // Allow all common headers
         configuration.setAllowedHeaders(Arrays.asList(
-                "Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"
+                "Authorization",
+                "Content-Type",
+                "X-Requested-With",
+                "Accept",
+                "Origin",
+                "Access-Control-Request-Method",
+                "Access-Control-Request-Headers"
+        ));
+
+        // Expose headers to the client
+        configuration.setExposedHeaders(Arrays.asList(
+                "Access-Control-Allow-Origin",
+                "Access-Control-Allow-Credentials",
+                "Authorization"
         ));
 
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
-
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
 
         return source;
